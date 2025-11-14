@@ -305,9 +305,12 @@ Rails emits structured events across the framework covering controllers, jobs, d
 | `:controller`     | The controller name                                        |
 | `:action`         | The action                                                 |
 | `:status`         | HTTP status code                                           |
-| `:status_name`    | Name of HTTP status using `Rack::Utils::HTTP_STATUS_CODES` |
 | `:duration_ms`    | Total duration of the request in ms                        |
 | `:gc_time_ms`     | Amount spent in garbage collection in ms                   |
+| `:view_runtime`   | Amount spent in view in ms                                 |
+| `:db_runtime`             | Amount spent executing database queries in ms      |
+| `:queries_count`          | Amount of database queries executed                |
+| `:cached_queries_count`   | Amount of cached database queries executed         |
 
 #### `action_controller.file_sent`
 
@@ -342,8 +345,9 @@ Rails emits structured events across the framework covering controllers, jobs, d
 | `:controller`       | The controller name                                                     |
 | `:action`           | The action                                                              |
 | `:unpermitted_keys` | The unpermitted keys                                                    |
+| `:context`          | Hash with the following keys: `:controller`, `:action`, `:params`       |
 
-#### `action_controller.rescue_from_handler`
+#### `action_controller.rescue_from_handled`
 
 | Key                    | Value                          |
 | ---------------------- | ------------------------------ |
