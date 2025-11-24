@@ -208,7 +208,7 @@ Although both systems relate to what happens inside the application, they solve 
 * subscribers export data externally
 * designed for high cardinality, low-cost search
 
-### How they work together
+### How They Work Together
 
 `ActiveSupport::StructuredEventSubscriber` bridges the two systems:
 
