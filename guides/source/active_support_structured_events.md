@@ -38,22 +38,22 @@ Rails automatically attaches timestamps, source location, and context so develop
 
 ### Why Structured Events?
 
-Rails already emits unstructured logs. They are ideal for development but become difficult and expensive to use in production:
+Rails already emits unstructured logs. They are ideal for development but become difficult and expensive to use in production. Some of the challenges of logs are as follows:
 
 * logs from many threads and processes interleave
-* no consistent schema
-* specialized knowledge needed to query
+* there is no consistent schema
+* specialized knowledge is needed to query the logs
 * indexing costs grow with volume
-* onboarding requires understanding bespoke log formats
+* onboarding requires an understanding of bespoke log formats
 
-Structured events fix these problems:
+Structured events fix these problems as they:
 
-* consistent shape
-* semantic naming
-* predictable payload keys
-* cheap to index in structured stores
-* easy to query
-* compatible with any Obeservability backend
+* have a consistent shape
+* have semantic naming
+* have predictable payload keys
+* are cheap to index in structured stores
+* are easy to query
+* are compatible with any Obeservability backend
 
 They also unify **business events** and **developer observability events** behind a single API.
 
@@ -84,14 +84,21 @@ Names should reflect *what happened*, not how or why.
 
 ### Event Payloads
 
-Payloads may be:
+Payloads can be simple Ruby hashes:
 
-* simple Ruby hashes
-* domain-specific event objects that define their own schema
+```ruby
+Rails.event.notify("user_created", { id: 123 })
+# Emits event:
+#  {
+#    name: "user_created",
+#    payload: { id: 123 },
+#    timestamp: 1738964843208679035,
+#    source_location: { filepath: "path/to/file.rb", lineno: 123, label: "UserService#create" }
+#  }
 
 Rails merges any additional keyword arguments into the payload hash.
 
-For details on object payloads and automatic key normalization, see:
+Further details on object payloads and automatic key normalization can be found in the [Event Objects][] section of the API documentation.
 
 * **[Event Objects][]**
 
@@ -105,7 +112,7 @@ Rails.event.debug("cache.evicted", size: 1024)
 
 Use these for high-volume diagnostic telemetry.
 
-For details:
+Further details on debug events can be found in the [Debug Events][] section of the API documentation.
 
 * **[Debug Events][]**
 
@@ -133,7 +140,7 @@ Rails.event.subscribe(JSONSubscriber.new)
 
 Subscribers may also use filter procs to receive only certain events.
 
-See:
+For more information on [Subscribers][] and [Filtered Subscriptions][], please see their respective sections within the Structured Events API documentation. 
 
 * **[Subscribers][]**
 * **[Filtered Subscriptions][]**
@@ -159,7 +166,7 @@ Resulting event:
 
 Tags are stack-based and temporary.
 
-See:
+Further details on tags can be found in the [Tags][] section of the API documentation.
 
 * **[Tags][]**
 
@@ -182,7 +189,7 @@ Resulting event:
 }
 ```
 
-For custom stores and behavior:
+Further details on the context store can be found in the [Context Store][] section of the API documentation.
 
 * **[Context Store][]**
 
@@ -206,17 +213,30 @@ Although both systems relate to what happens inside the application, they solve 
 * metadata is attached automatically
 * built for observability systems
 * subscribers export data externally
-* designed for high cardinality, low-cost search
+Relationship to ActiveSupport::Notifications
+--------------------------------------------
 
-### How They Work Together
+If you're familiar with `ActiveSupport::Notifications`, you might wonder how Structured Events differ. While both systems help you understand what's happening inside your application, they're designed for different use cases.
+
+`ActiveSupport::Notifications` is an instrumentation API focused on measuring performance. When you want to track how long something takes, how much memory it allocates, or when it starts and finishes, you wrap that code in an instrumentation block. Subscribers listen for these notifications and react synchronously within your application. This is perfect for things like logging slow queries or tracking request timing.
+
+Structured Events takes a different approach. Rather than measuring performance, it's designed to report on what happened in your application using structured, semantic data. Each event includes a payload describing the action along with automatically-attached metadata. This makes Structured Events particularly well-suited for external observability systems, where you need rich, searchable data about application behavior. The system is optimized for high-cardinality events, such as tracking every user action or API call, with efficient querying in modern observability platforms.
+
+In practice, you'll often use both: `ActiveSupport::Notifications` for performance monitoring and Structured Events for behavioral analytics and debugging.
+
+### How ActiveSupport::Notifications and Structured Events Work Together
 
 `ActiveSupport::StructuredEventSubscriber` bridges the two systems:
 
 1. listens to Notifications (e.g., `"process_action.action_controller"`)
 2. transforms them
-3. emits structured events via `Rails.event.notify`
+`ActiveSupport::StructuredEventSubscriber` bridges the two systems by:
 
-Framework components such as Action Controller, Active Record, Active Job, and others use structured subscribers to convert internal instrumentation into structured events.
+1. listening to notifications (e.g., `"process_action.action_controller"`)
+2. transforming them, and
+3. emitting structured events via `Rails.event.notify`.
+
+In the following section, you will see how framework components such as Action Controller, Active Record, Active Job, and others use structured subscribers to convert internal instrumentation into structured events.
 
 Structured Event Subscribers
 ----------------------------
@@ -239,7 +259,7 @@ class StructuredControllerSubscriber < ActiveSupport::StructuredEventSubscriber
 end
 ```
 
-Key behaviors:
+A structured subscriber:
 
 * auto-names methods based on the notification name
 * supports silencing "debug-only" events
@@ -253,7 +273,12 @@ Security
 Hash-based payloads are filtered automatically using [`config.filter_parameters`][].
 
 [Event objects][Event Objects] must be filtered by the subscriber, e.g. with [ActiveSupport::ParameterFilter][].
+Security
+--------
 
+Structured Events respects your application's privacy settings by automatically filtering sensitive data from hash-based payloads using [`config.filter_parameters`][]. This means if you've set up filters for passwords, tokens, or credit card numbers elsewhere in your app, those same filters apply here.
+
+However, if you're using [Event objects][Event Objects], you'll need to handle filtering yourself in your subscriber. You can use [ActiveSupport::ParameterFilter][] to apply the same filtering rules. This extra step with Event objects gives you full control over how data is filtered before it leaves your application, which is particularly important when exporting to external systems.
 
 
 [EventReporter API documentation]: https://api.rubyonrails.org/classes/ActiveSupport/EventReporter.html
@@ -271,7 +296,7 @@ Hash-based payloads are filtered automatically using [`config.filter_parameters`
 Framework Hooks (Structured Events Emitted by Rails)
 ----------------------------------------------------
 
-Rails emits structured events across the framework covering controllers, jobs, database activity, caching, mailing, streaming, and more.
+Rails emits structured events across the framework covering controllers, jobs, database activity, caching, mailing, streaming, and more. Below you can find a list of these events and their payloads.
 
 ### Action Controller
 
